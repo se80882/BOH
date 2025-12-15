@@ -52,6 +52,7 @@ module.exports = defineConfig({
         ...devices['Desktop Chrome'],
         /* Chrome特定选项 */
         headless: false, // 显示浏览器窗口
+        /* 不在启动时最大化，由测试代码通过CDP控制最大化 */
       },
     },
   ],

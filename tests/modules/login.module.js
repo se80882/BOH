@@ -3,17 +3,26 @@
  * 包含登录、租户名验证、语言切换功能
  */
 
+const { expect } = require('@playwright/test');
+const { loginUrl: defaultLoginUrl, credentials: defaultCredentials } = require('../config/login.config');
+
 /**
  * 执行登录操作
  * @param {Page} page - Playwright页面对象
- * @param {Object} credentials - 登录凭据
- * @param {string} credentials.account - 账号
- * @param {string} credentials.password - 密码
- * @param {string} credentials.brandAlias - 品牌别名
+ * @param {Object} options - 登录选项
+ * @param {string} options.loginUrl - 登录页面URL（可选，默认使用配置文件中的URL）
+ * @param {string} options.account - 账号（可选，默认使用配置文件中的账号）
+ * @param {string} options.password - 密码（可选，默认使用配置文件中的密码）
+ * @param {string} options.brandAlias - 品牌别名（可选，默认使用配置文件中的品牌别名）
  */
-async function login(page, { account = 'admin', password = 'admin@123', brandAlias = 'hex' }) {
+async function login(page, { 
+  loginUrl = defaultLoginUrl, 
+  account = defaultCredentials.account, 
+  password = defaultCredentials.password, 
+  brandAlias = defaultCredentials.brandAlias 
+} = {}) {
   // 步骤1: 打开登录页面
-  await page.goto('https://saas-auth-qa.hexcloud.cn/page/login');
+  await page.goto(loginUrl);
   
   // 使用更宽松的等待策略
   try {
@@ -280,9 +289,12 @@ async function verifyTenantName(page, expectedTenantName = '合阔x') {
     }
   }
   
-  if (!found) {
-    throw new Error(`未找到租户名: ${expectedTenantName}`);
-  }
+  // 使用expect断言验证租户名
+  expect(found).toBe(true);
+  
+  // 验证页面文本中包含租户名（双重验证）
+  const pageText = await page.textContent('body');
+  expect(pageText).toContain(expectedTenantName);
   
   console.log(`✓ 租户名验证通过: ${expectedTenantName}`);
 }
