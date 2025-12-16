@@ -109,113 +109,115 @@ def page(context: BrowserContext, request):
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """在测试报告中添加视频和截图"""
+    """在测试报告中添加视频和截图（Allure）"""
     outcome = yield
     report = outcome.get_result()
     
     # 存储测试结果
     setattr(item, f"rep_{report.when}", report)
     
-    # 如果是测试调用阶段（call），添加额外内容到报告
+    # 如果是测试调用阶段（call），添加Allure附件
     if report.when == 'call':
-        extras = getattr(report, 'extras', [])
-        
-        # 添加视频（如果存在）
+        # 添加视频到Allure报告
         if hasattr(item, 'video_path'):
             try:
-                from py.xml import html
+                import allure
                 video_path = item.video_path
                 video_path_obj = Path(video_path)
                 if video_path_obj.exists():
-                    # 将视频复制到报告目录中
-                    report_dir = Path('playwright-report')
-                    report_dir.mkdir(exist_ok=True)
+                    # 将视频复制到allure-results目录
+                    allure_results_dir = Path('allure-results')
+                    allure_results_dir.mkdir(exist_ok=True)
                     video_name = video_path_obj.name
-                    video_in_report = report_dir / video_name
+                    allure_video_path = allure_results_dir / video_name
                     import shutil
-                    shutil.copy2(video_path_obj, video_in_report)
-                    # 使用相对路径在HTML中引用
-                    extras.append(html.p("操作视频:", style="font-weight: bold; margin-top: 10px;"))
-                    extras.append(html.video(src=video_name, width="800", controls=True, style="margin: 10px 0; border: 1px solid #ccc;"))
+                    shutil.copy2(video_path_obj, allure_video_path)
+                    # 添加到Allure附件
+                    allure.attach.file(
+                        str(allure_video_path),
+                        name="操作视频",
+                        attachment_type=allure.attachment_type.WEBM
+                    )
             except Exception as e:
-                print(f'⚠️  添加视频到报告失败: {e}')
+                print(f'⚠️  添加视频到Allure报告失败: {e}')
         
-        # 添加失败截图（如果存在）
+        # 添加失败截图到Allure报告
         if report.failed and hasattr(item, 'screenshot_path'):
             try:
-                from py.xml import html
+                import allure
                 screenshot_path = item.screenshot_path
                 screenshot_path_obj = Path(screenshot_path)
                 if screenshot_path_obj.exists():
-                    # 将截图复制到报告目录中
-                    report_dir = Path('playwright-report')
-                    report_dir.mkdir(exist_ok=True)
-                    screenshot_name = f"{item.nodeid.replace('::', '_').replace('/', '_')}_screenshot.png"
-                    screenshot_in_report = report_dir / screenshot_name
-                    import shutil
-                    shutil.copy2(screenshot_path_obj, screenshot_in_report)
-                    # 使用相对路径在HTML中引用
-                    extras.append(html.p("失败截图:", style="font-weight: bold; margin-top: 10px;"))
-                    extras.append(html.img(src=screenshot_name, style="max-width: 800px; border: 1px solid #ccc; margin: 10px 0;"))
+                    # 读取截图文件并附加到Allure
+                    with open(screenshot_path_obj, 'rb') as f:
+                        allure.attach(
+                            f.read(),
+                            name="失败截图",
+                            attachment_type=allure.attachment_type.PNG
+                        )
             except Exception as e:
-                print(f'⚠️  添加截图到报告失败: {e}')
-        
-        report.extras = extras
-
-
-def pytest_html_report_title(report):
-    """自定义HTML报告标题"""
-    report.title = "BOH自动化测试报告 - 完整测试用例列表"
-
-
-def pytest_html_results_summary(prefix, summary, postfix):
-    """自定义HTML报告摘要，确保显示成功/失败统计"""
-    # pytest-html会自动生成统计信息，这个hook可以用来添加额外内容
-    # 但默认情况下统计信息应该已经显示了
-    pass
-
-
-def pytest_html_results_table_header(cells):
-    """自定义测试结果表格头部（pytest-html默认已包含，这里不修改）"""
-    # pytest-html默认已经包含所有必要的列，不需要额外添加
-    pass
-
-
-def pytest_html_results_table_row(report, cells):
-    """自定义测试结果表格行（pytest-html默认已包含，这里不修改）"""
-    # pytest-html默认已经包含所有必要的信息，不需要额外添加
-    pass
+                print(f'⚠️  添加截图到Allure报告失败: {e}')
 
 
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session, exitstatus):
     """
-    测试会话结束后，自动打开HTML报告
+    测试会话结束后，生成Allure报告
     """
-    report_path = Path('playwright-report/index.html')
+    allure_results_dir = Path('allure-results')
+    allure_report_dir = Path('allure-report')
     
-    if report_path.exists():
-        report_abs_path = report_path.absolute()
+    if allure_results_dir.exists() and list(allure_results_dir.glob('*.json')):
         print('\n' + '='*80)
-        print('📊 测试报告已生成！')
-        print(f'📁 报告路径: {report_abs_path}')
+        print('📊 Allure测试结果已生成！')
+        print(f'📁 结果目录: {allure_results_dir.absolute()}')
         print('='*80 + '\n')
         
-        # 根据操作系统自动打开报告
+        # 尝试生成Allure报告（如果安装了allure命令行工具）
         try:
-            if sys.platform == 'darwin':  # macOS
-                subprocess.run(['open', str(report_abs_path)], check=False)
-                print('✅ 已在浏览器中打开测试报告\n')
-            elif sys.platform == 'win32':  # Windows
-                os.startfile(str(report_abs_path))
-                print('✅ 已在浏览器中打开测试报告\n')
-            elif sys.platform.startswith('linux'):  # Linux
-                subprocess.run(['xdg-open', str(report_abs_path)], check=False)
-                print('✅ 已在浏览器中打开测试报告\n')
+            result = subprocess.run(
+                ['allure', 'generate', str(allure_results_dir), '-o', str(allure_report_dir), '--clean'],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            
+            if result.returncode == 0 and allure_report_dir.exists():
+                report_index = allure_report_dir / 'index.html'
+                if report_index.exists():
+                    report_abs_path = report_index.absolute()
+                    print('✅ Allure报告已生成！')
+                    print(f'📁 报告路径: {report_abs_path}')
+                    
+                    # 根据操作系统自动打开报告
+                    try:
+                        if sys.platform == 'darwin':  # macOS
+                            subprocess.run(['open', str(report_abs_path)], check=False)
+                            print('✅ 已在浏览器中打开Allure报告\n')
+                        elif sys.platform == 'win32':  # Windows
+                            os.startfile(str(report_abs_path))
+                            print('✅ 已在浏览器中打开Allure报告\n')
+                        elif sys.platform.startswith('linux'):  # Linux
+                            subprocess.run(['xdg-open', str(report_abs_path)], check=False)
+                            print('✅ 已在浏览器中打开Allure报告\n')
+                        else:
+                            print(f'⚠️  请手动打开报告: {report_abs_path}\n')
+                    except Exception as e:
+                        print(f'⚠️  自动打开报告失败: {e}')
+                        print(f'   请手动打开报告: {report_abs_path}\n')
+                else:
+                    print('⚠️  Allure报告生成失败，但结果文件已保存\n')
+                    print('💡 提示: 使用以下命令生成报告:')
+                    print(f'   allure generate {allure_results_dir} -o {allure_report_dir} --clean\n')
             else:
-                print(f'⚠️  请手动打开报告: {report_abs_path}\n')
-        except Exception as e:
-            print(f'⚠️  自动打开报告失败: {e}')
-            print(f'   请手动打开报告: {report_abs_path}\n')
+                print('⚠️  Allure命令行工具未安装，无法自动生成报告\n')
+                print('💡 提示: 使用以下命令生成报告:')
+                print(f'   allure generate {allure_results_dir} -o {allure_report_dir} --clean\n')
+        except FileNotFoundError:
+            print('⚠️  Allure命令行工具未安装\n')
+            print('💡 提示: 安装Allure后使用以下命令生成报告:')
+            print(f'   allure generate {allure_results_dir} -o {allure_report_dir} --clean\n')
+        except subprocess.TimeoutExpired:
+            print('⚠️  生成Allure报告超时\n')
     else:
-        print('\n⚠️  未找到测试报告文件\n')
+        print('\n⚠️  未找到Allure测试结果文件\n')

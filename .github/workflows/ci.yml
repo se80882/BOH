@@ -38,19 +38,30 @@ jobs:
     
     - name: 运行Python测试
       run: |
-        python -m pytest tests/test_login.py -v --html=playwright-report/python-test-report.html --self-contained-html
+        python -m pytest tests/test_login.py -v
       env:
         CI: true
       continue-on-error: false
     
-    - name: 上传测试报告
+    - name: 安装Allure命令行工具
+      run: |
+        wget -qO- https://github.com/allure-framework/allure2/releases/download/2.24.0/allure-2.24.0.tgz | tar -xz
+        sudo mv allure-2.24.0 /opt/allure
+        sudo ln -sf /opt/allure/bin/allure /usr/local/bin/allure
+    
+    - name: 生成Allure报告
+      run: |
+        allure generate allure-results -o allure-report --clean || true
+      continue-on-error: true
+    
+    - name: 上传Allure报告
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: python-test-report-${{ matrix.python-version }}
+        name: allure-report-${{ matrix.python-version }}
         path: |
-          playwright-report/python-test-report.html
-          test-results/
+          allure-results/
+          allure-report/
         retention-days: 30
     
     - name: 上传测试视频

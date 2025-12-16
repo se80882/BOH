@@ -121,47 +121,71 @@ python -m pytest tests/test_login.py::test_complete_flow
 
 ### 查看测试报告
 
-测试完成后会自动生成HTML报告，并且**会自动在浏览器中打开报告**。
+项目使用 **Allure Reports** 生成美观的测试报告。
 
-报告位置：`playwright-report/index.html`
+#### 安装Allure命令行工具
 
-**报告内容**：
+**macOS** (使用Homebrew):
+```bash
+brew install allure
+```
+
+**Windows** (使用Scoop):
+```bash
+scoop install allure
+```
+
+**Linux**:
+```bash
+# 下载并安装Allure
+wget https://github.com/allure-framework/allure2/releases/download/2.24.0/allure-2.24.0.tgz
+tar -zxvf allure-2.24.0.tgz
+sudo mv allure-2.24.0 /opt/allure
+sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
+```
+
+或者访问 [Allure官网](https://docs.qameta.io/allure/) 查看详细安装说明。
+
+#### 运行测试并生成报告
+
+```bash
+# 1. 运行测试（会自动生成allure-results目录）
+python -m pytest tests/test_login.py -v
+
+# 2. 生成Allure报告
+allure generate allure-results -o allure-report --clean
+
+# 3. 打开报告（如果安装了Allure，测试完成后会自动打开）
+allure open allure-report
+```
+
+#### 报告内容
+
+Allure报告包含以下内容：
 - ✅ **测试用例列表**：显示所有执行过的测试用例
-- ✅ **统计信息**：显示成功、失败、跳过的测试数量
-- ✅ **操作视频**：每个测试用例的完整操作视频
-- ✅ **失败截图**：测试失败时的截图（自动保存）
-- ✅ **详细信息**：每个测试用例的执行时间、状态等
+- ✅ **统计信息**：显示成功、失败、跳过的测试数量和图表
+- ✅ **操作视频**：每个测试用例的完整操作视频（自动附加）
+- ✅ **失败截图**：测试失败时的截图（自动附加）
+- ✅ **测试步骤**：详细的测试执行步骤
+- ✅ **执行时间**：每个测试用例和步骤的执行时间
+- ✅ **环境信息**：测试执行环境详情
 
-**自动打开功能**：
-- 测试执行完成后，会自动检测报告是否生成
-- 如果报告存在，会自动在默认浏览器中打开
-- 支持 macOS、Windows 和 Linux 系统
+#### 报告目录说明
 
-如果想手动打开报告：
+- `allure-results/` - 测试结果原始数据（JSON格式）
+- `allure-report/` - 生成的HTML报告（可独立查看）
 
+#### 自动打开报告
+
+如果安装了Allure命令行工具，测试完成后会自动：
+1. 生成Allure报告
+2. 在浏览器中打开报告
+
+如果未安装Allure工具，可以手动生成：
 ```bash
-# macOS/Linux
-open playwright-report/index.html
-
-# Windows
-start playwright-report/index.html
+allure generate allure-results -o allure-report --clean
+allure open allure-report
 ```
-
-或者使用命令行直接生成并查看：
-
-```bash
-python -m pytest --html=playwright-report/index.html --self-contained-html
-```
-
-**报告结构**：
-1. **报告头部**：显示测试标题和生成时间
-2. **统计摘要**：显示总测试数、通过数、失败数、跳过数
-3. **测试用例表格**：列出所有测试用例，包含：
-   - 测试用例名称
-   - 测试状态（通过/失败/跳过）
-   - 执行时间
-   - 操作视频（如果存在）
-   - 失败截图（如果测试失败）
 
 ## CI/CD持续集成
 
@@ -195,9 +219,10 @@ python -m pytest --html=playwright-report/index.html --self-contained-html
    - 查看工作流执行状态和历史记录
 
 2. **测试报告Artifacts**：
-   - 在每个工作流运行完成后，可以在Actions页面下载测试报告
-   - 报告包含HTML格式的详细测试结果
+   - 在每个工作流运行完成后，可以在Actions页面下载Allure报告
+   - 报告包含完整的Allure HTML报告
    - 包含操作视频和失败截图
+   - 下载后解压，使用浏览器打开 `allure-report/index.html` 查看报告
 
 3. **Pull Request检查**：
    - 创建PR时，CI/CD会自动运行测试
