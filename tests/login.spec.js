@@ -134,7 +134,7 @@ test.describe('登录和订货测试', () => {
         source: '总部分配',
         orderDate: '2025-12-08',
         storeName: 'WEN测试直营门店01',
-        storeCode: '10010' // 门店编号
+        storeCode: '100000010' // 门店编号
       });
     });
 

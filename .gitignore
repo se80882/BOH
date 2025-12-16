@@ -3,6 +3,18 @@ playwright-report/
 test-results/
 *.log
 .DS_Store
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist/
+build/
+.pytest_cache/
+
 
 
 
