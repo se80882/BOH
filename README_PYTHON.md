@@ -173,18 +173,44 @@ Allure报告包含以下内容：
 #### 报告目录说明
 
 - `allure-results/` - 测试结果原始数据（JSON格式）
-- `allure-report/` - 生成的HTML报告（可独立查看）
+- `allure-report/` - 生成的HTML报告（需要通过HTTP服务器访问）
+
+#### 重要提示
+
+⚠️ **Allure报告必须通过HTTP服务器访问才能正常显示**！
+
+- ❌ 直接打开 `allure-report/index.html` 文件会显示 loading，无法正常展示
+- ✅ 必须使用 `allure open allure-report` 命令，它会自动启动本地HTTP服务器（如 `http://127.0.0.1:63183/#`）
+- ✅ 或者使用其他HTTP服务器（如Python的 `http.server`）来访问报告目录
 
 #### 自动打开报告
 
 如果安装了Allure命令行工具，测试完成后会自动：
 1. 生成Allure报告
-2. 在浏览器中打开报告
+2. 使用 `allure open` 命令启动本地HTTP服务器并在浏览器中打开报告
 
-如果未安装Allure工具，可以手动生成：
+如果未安装Allure工具，可以手动生成并打开：
 ```bash
+# 生成报告
 allure generate allure-results -o allure-report --clean
+
+# 打开报告（会启动本地HTTP服务器）
 allure open allure-report
+```
+
+#### 使用其他HTTP服务器查看报告
+
+如果不想使用 `allure open`，也可以使用Python内置的HTTP服务器：
+
+```bash
+# 进入报告目录
+cd allure-report
+
+# 启动HTTP服务器（Python 3）
+python3 -m http.server 8000
+
+# 然后在浏览器中访问
+# http://localhost:8000
 ```
 
 ## CI/CD持续集成

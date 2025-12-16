@@ -185,38 +185,42 @@ def pytest_sessionfinish(session, exitstatus):
             if result.returncode == 0 and allure_report_dir.exists():
                 report_index = allure_report_dir / 'index.html'
                 if report_index.exists():
-                    report_abs_path = report_index.absolute()
                     print('✅ Allure报告已生成！')
-                    print(f'📁 报告路径: {report_abs_path}')
+                    print(f'📁 报告目录: {allure_report_dir.absolute()}')
                     
-                    # 根据操作系统自动打开报告
+                    # 使用allure open命令打开报告（会启动本地HTTP服务器）
                     try:
-                        if sys.platform == 'darwin':  # macOS
-                            subprocess.run(['open', str(report_abs_path)], check=False)
-                            print('✅ 已在浏览器中打开Allure报告\n')
-                        elif sys.platform == 'win32':  # Windows
-                            os.startfile(str(report_abs_path))
-                            print('✅ 已在浏览器中打开Allure报告\n')
-                        elif sys.platform.startswith('linux'):  # Linux
-                            subprocess.run(['xdg-open', str(report_abs_path)], check=False)
-                            print('✅ 已在浏览器中打开Allure报告\n')
-                        else:
-                            print(f'⚠️  请手动打开报告: {report_abs_path}\n')
+                        print('🚀 正在启动Allure服务器...')
+                        # allure open会在后台启动服务器并打开浏览器
+                        subprocess.Popen(
+                            ['allure', 'open', str(allure_report_dir)],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL
+                        )
+                        print('✅ 已在浏览器中打开Allure报告（通过本地服务器）\n')
+                        print('💡 提示: 如果浏览器未自动打开，请使用以下命令:')
+                        print(f'   allure open {allure_report_dir}\n')
                     except Exception as e:
                         print(f'⚠️  自动打开报告失败: {e}')
-                        print(f'   请手动打开报告: {report_abs_path}\n')
+                        print(f'   请使用以下命令手动打开:')
+                        print(f'   allure open {allure_report_dir}\n')
+                        print(f'   或者直接打开文件（可能显示loading）:')
+                        print(f'   {report_index.absolute()}\n')
                 else:
                     print('⚠️  Allure报告生成失败，但结果文件已保存\n')
-                    print('💡 提示: 使用以下命令生成报告:')
-                    print(f'   allure generate {allure_results_dir} -o {allure_report_dir} --clean\n')
+                    print('💡 提示: 使用以下命令生成并打开报告:')
+                    print(f'   allure generate {allure_results_dir} -o {allure_report_dir} --clean')
+                    print(f'   allure open {allure_report_dir}\n')
             else:
                 print('⚠️  Allure命令行工具未安装，无法自动生成报告\n')
-                print('💡 提示: 使用以下命令生成报告:')
-                print(f'   allure generate {allure_results_dir} -o {allure_report_dir} --clean\n')
+                print('💡 提示: 使用以下命令生成并打开报告:')
+                print(f'   allure generate {allure_results_dir} -o {allure_report_dir} --clean')
+                print(f'   allure open {allure_report_dir}\n')
         except FileNotFoundError:
             print('⚠️  Allure命令行工具未安装\n')
-            print('💡 提示: 安装Allure后使用以下命令生成报告:')
-            print(f'   allure generate {allure_results_dir} -o {allure_report_dir} --clean\n')
+            print('💡 提示: 安装Allure后使用以下命令生成并打开报告:')
+            print(f'   allure generate {allure_results_dir} -o {allure_report_dir} --clean')
+            print(f'   allure open {allure_report_dir}\n')
         except subprocess.TimeoutExpired:
             print('⚠️  生成Allure报告超时\n')
     else:
