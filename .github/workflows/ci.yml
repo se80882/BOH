@@ -1,0 +1,117 @@
+name: CI/CD - 自动化测试
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  python-tests:
+    name: Python测试
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+    
+    - name: 设置Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    
+    - name: 安装Python依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: 安装Playwright浏览器
+      run: |
+        playwright install chromium
+        playwright install-deps chromium
+    
+    - name: 运行Python测试
+      run: |
+        python -m pytest tests/test_login.py -v --html=playwright-report/python-test-report.html --self-contained-html
+      env:
+        CI: true
+      continue-on-error: false
+    
+    - name: 上传测试报告
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: python-test-report-${{ matrix.python-version }}
+        path: |
+          playwright-report/python-test-report.html
+          test-results/
+        retention-days: 30
+    
+    - name: 上传测试视频
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: python-test-videos-${{ matrix.python-version }}
+        path: test-results/**/*.webm
+        retention-days: 7
+
+  javascript-tests:
+    name: JavaScript测试
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+    
+    - name: 设置Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: 安装依赖
+      run: npm ci
+    
+    - name: 安装Playwright浏览器
+      run: npx playwright install --with-deps chromium
+    
+    - name: 运行JavaScript测试
+      run: npm test
+      env:
+        CI: true
+    
+    - name: 上传测试报告
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: javascript-test-report
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 30
+
+  test-summary:
+    name: 测试总结
+    needs: [python-tests, javascript-tests]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: 测试结果总结
+      run: |
+        echo "## 🧪 测试执行结果" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Python测试" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ 已在多个Python版本上运行测试" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### JavaScript测试" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ 已运行JavaScript/Node.js测试" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📊 详细测试报告请查看Artifacts" >> $GITHUB_STEP_SUMMARY
+

@@ -25,9 +25,12 @@ def playwright():
 @pytest.fixture(scope="session")
 def browser(playwright: Playwright):
     """创建浏览器实例（Chrome）"""
+    import os
+    # CI环境使用headless模式，本地开发使用headed模式
+    is_ci = os.getenv('CI', 'false').lower() == 'true'
     browser = playwright.chromium.launch(
-        headless=False,  # 显示浏览器窗口
-        channel="chrome"  # 使用Chrome浏览器
+        headless=is_ci,  # CI环境使用headless，本地显示浏览器窗口
+        channel="chrome" if not is_ci else None  # CI环境不使用系统Chrome，使用Playwright自带的
     )
     yield browser
     browser.close()

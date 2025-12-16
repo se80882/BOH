@@ -163,6 +163,64 @@ python -m pytest --html=playwright-report/index.html --self-contained-html
    - 操作视频（如果存在）
    - 失败截图（如果测试失败）
 
+## CI/CD持续集成
+
+项目已配置GitHub Actions工作流，支持自动化测试。
+
+### 工作流说明
+
+#### 1. CI/CD自动化测试 (`ci.yml`)
+- **触发时机**：
+  - 代码推送到 `main` 或 `develop` 分支
+  - 创建Pull Request到 `main` 或 `develop` 分支
+  - 手动触发
+- **执行内容**：
+  - 在多个Python版本（3.9, 3.10, 3.11）上运行Python测试
+  - 运行JavaScript/Node.js测试
+  - 生成测试报告并上传为Artifact
+  - 上传测试视频（保留7天）
+
+#### 2. 定时测试 (`scheduled-tests.yml`)
+- **触发时机**：
+  - 每天UTC 2:00（北京时间10:00）自动运行
+  - 手动触发
+- **执行内容**：
+  - 运行完整的Python测试套件
+  - 生成测试报告
+
+### 查看CI/CD结果
+
+1. **GitHub Actions页面**：
+   - 访问 `https://github.com/[用户名]/BOH/actions`
+   - 查看工作流执行状态和历史记录
+
+2. **测试报告Artifacts**：
+   - 在每个工作流运行完成后，可以在Actions页面下载测试报告
+   - 报告包含HTML格式的详细测试结果
+   - 包含操作视频和失败截图
+
+3. **Pull Request检查**：
+   - 创建PR时，CI/CD会自动运行测试
+   - PR页面会显示测试通过/失败状态
+   - 测试失败会阻止合并（可配置）
+
+### 本地CI测试
+
+在本地模拟CI环境运行测试：
+
+```bash
+# 设置CI环境变量
+export CI=true
+
+# 运行测试（会使用headless模式）
+python -m pytest tests/test_login.py -v
+```
+
+### CI/CD配置文件
+
+- `.github/workflows/ci.yml` - 主CI/CD工作流
+- `.github/workflows/scheduled-tests.yml` - 定时测试工作流
+
 ## 测试流程
 
 当前的完整测试流程包括：
