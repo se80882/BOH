@@ -108,7 +108,22 @@ def test_complete_flow(page: Page, context: BrowserContext):
         password=CREDENTIALS['password'],
         brand_alias=CREDENTIALS['brandAlias']
     )
-    page.wait_for_load_state('networkidle')
+    # 等待页面加载，使用带超时的等待策略，避免在CI环境中卡住
+    try:
+        page.wait_for_load_state('domcontentloaded', timeout=10000)
+        print('✓ 页面DOM已加载完成')
+    except Exception as e:
+        print(f'⚠️  等待domcontentloaded超时: {e}，继续执行')
+    
+    # 尝试等待网络空闲，但如果超时则继续执行（某些页面可能永远无法达到networkidle状态）
+    try:
+        page.wait_for_load_state('networkidle', timeout=15000)
+        print('✓ 网络请求已空闲')
+    except Exception as e:
+        print(f'⚠️  等待networkidle超时: {e}，继续执行（某些页面可能有持续的网络请求）')
+    
+    # 额外等待一段时间确保页面稳定
+    page.wait_for_timeout(2000)
     
     # 步骤2: 检查页面左上角的租户名为合阔x
     print('步骤2: 验证页面左上角的租户名为合阔x')
@@ -159,7 +174,18 @@ def test_complete_flow(page: Page, context: BrowserContext):
     
     # 步骤8: 验证商品行展示一个商品行
     print('步骤8: 验证商品行展示一个商品行')
-    page.wait_for_load_state('networkidle')
+    # 等待页面加载，使用带超时的等待策略，避免在CI环境中卡住
+    try:
+        page.wait_for_load_state('domcontentloaded', timeout=10000)
+    except Exception as e:
+        print(f'⚠️  等待domcontentloaded超时: {e}，继续执行')
+    
+    try:
+        page.wait_for_load_state('networkidle', timeout=15000)
+        print('✓ 网络请求已空闲')
+    except Exception as e:
+        print(f'⚠️  等待networkidle超时: {e}，继续执行')
+    
     page.wait_for_timeout(3000)
     
     # 查找商品行（多种选择器）
