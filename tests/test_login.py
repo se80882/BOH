@@ -3,6 +3,7 @@
 完整测试流程：登录、订货单查询和验证
 """
 
+import os
 import pytest
 from playwright.sync_api import Page, BrowserContext
 from tests.modules.login_module import login, verify_tenant_name
@@ -24,8 +25,17 @@ def test_complete_flow(page: Page, context: BrowserContext):
     """
     # 步骤1: Chrome浏览器最大化后打开登录页面并登录
     print('步骤1: 最大化浏览器并打开登录页面，使用admin账号登录')
-    # 使用CDP直接调用Chrome浏览器的最大化方法
-    try:
+    
+    # 检查是否是CI环境（headless模式不支持CDP最大化）
+    is_ci = os.getenv('CI', 'false').lower() == 'true'
+    
+    if is_ci:
+        # CI环境中viewport已在conftest.py中设置，跳过viewport设置
+        print('检测到CI环境，viewport已在conftest.py中设置为1920x1080')
+        page.wait_for_timeout(200)
+    else:
+        # 本地环境使用CDP最大化
+        try:
             cdp = context.new_cdp_session(page)
             
             # 获取当前页面的target ID
@@ -78,14 +88,18 @@ def test_complete_flow(page: Page, context: BrowserContext):
                                     'bounds': {'windowState': 'maximized'}
                                 })
                                 print('✓ 窗口状态已恢复为最大化')
-    except Exception as e:
-        print(f'CDP最大化失败，使用viewport方式: {e}')
-        # 如果CDP失败，使用viewport作为备选方案
-        page.set_viewport_size({'width': 1440, 'height': 900})
-    
-    # 等待窗口调整完成
-    page.wait_for_timeout(200)
-    
+        except Exception as e:
+            print(f'CDP最大化失败，使用viewport方式: {e}')
+            # 如果CDP失败，使用viewport作为备选方案
+            try:
+                page.set_viewport_size({'width': 1440, 'height': 900})
+                print('✓ Viewport已设置为: 1440x900 (备用方案)')
+            except Exception as e2:
+                print(f'⚠️  设置viewport也失败: {e2}，将使用默认设置')
+        
+        # 等待窗口调整完成
+        page.wait_for_timeout(200)
+        
     # 使用配置文件中的登录URL和凭据
     login(
         page,
@@ -150,11 +164,11 @@ def test_complete_flow(page: Page, context: BrowserContext):
     
     # 查找商品行（多种选择器）
     product_row_selectors = [
-            'table:has-text("商品编号") tr:has-text("T20251128012")',
-            'table:has-text("商品编号") tr:not(:has-text("商品编号"))',
-            '[class*="product-row"]',
-            '[class*="item-row"]',
-            'tr:has([class*="product-code"])',
+        'table:has-text("商品编号") tr:has-text("T20251128012")',
+        'table:has-text("商品编号") tr:not(:has-text("商品编号"))',
+        '[class*="product-row"]',
+        '[class*="item-row"]',
+        'tr:has([class*="product-code"])',
         'tbody tr',
         'table tr'
     ]

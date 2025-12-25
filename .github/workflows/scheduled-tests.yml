@@ -2,9 +2,9 @@ name: 定时测试
 
 on:
   schedule:
-    # 每2小时执行一次，从凌晨0点开始（UTC时间）
-    # 执行时间：0:00, 2:00, 4:00, 6:00, 8:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00, 22:00
-    - cron: '0 */2 * * *'
+    # 每20分钟执行一次（UTC时间）
+    # cron格式: 分钟 小时 日 月 星期
+    - cron: '*/20 * * * *'
   workflow_dispatch:  # 允许手动触发
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
     
     - name: 运行Python测试
       run: |
-        python -m pytest tests/test_login.py -v
+        python -m pytest tests/test_login.py -v --alluredir=allure-results
       env:
         CI: true
     

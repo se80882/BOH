@@ -50,9 +50,13 @@ def context(browser: Browser, request):
     test_dir = test_results_dir / test_name
     test_dir.mkdir(exist_ok=True)
     
+    # CI环境使用固定viewport，本地环境由测试代码控制
+    is_ci = os.getenv('CI', 'false').lower() == 'true'
+    viewport_config = {'width': 1920, 'height': 1080} if is_ci else None
+    
     # 配置视频录制（始终录制）
     context = browser.new_context(
-        viewport=None,  # 不使用固定viewport，由测试代码控制
+        viewport=viewport_config,  # CI环境使用固定viewport，本地环境由测试代码控制
         record_video_dir=str(test_dir),  # 视频保存目录
         record_video_size={'width': 1920, 'height': 1080}  # 视频尺寸
     )
