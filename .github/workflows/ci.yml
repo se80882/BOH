@@ -50,6 +50,19 @@ jobs:
         allure generate allure-results -o allure-report --clean || true
       continue-on-error: true
     
+    - name: 设置Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: 安装Node.js依赖
+      run: npm install
+    
+    - name: 修复Allure报告（支持file://协议）
+      run: npm run allure:fix
+      continue-on-error: true
+    
     - name: 上传Allure报告
       uses: actions/upload-artifact@v4
       if: always()
