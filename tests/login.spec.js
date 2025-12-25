@@ -140,7 +140,21 @@ test.describe('登录和订货测试', () => {
 
     // 步骤8: 验证商品行展示一个商品行
     await test.step('步骤8: 验证商品行展示一个商品行', async () => {
-      await page.waitForLoadState('networkidle');
+      // 使用更宽松的等待策略，避免因持续网络请求导致超时
+      try {
+        await page.waitForLoadState('domcontentloaded', { timeout: 10000 });
+      } catch (e) {
+        console.log('等待domcontentloaded超时，继续执行:', e.message);
+      }
+      
+      // 尝试等待networkidle，但如果超时则继续执行（某些页面可能有持续的网络请求）
+      try {
+        await page.waitForLoadState('networkidle', { timeout: 15000 });
+        console.log('✓ 网络请求已空闲');
+      } catch (e) {
+        console.log('⚠️  等待networkidle超时，继续执行（某些页面可能有持续的网络请求）');
+      }
+      
       await page.waitForTimeout(3000);
 
       // 查找商品行（多种选择器）
@@ -190,7 +204,7 @@ test.describe('登录和订货测试', () => {
       } else {
         const hasProductTable = pageText && (pageText.includes('商品编号') || pageText.includes('商品名称'));
         expect(hasProductTable).toBe(true);
-        console.log('检测到商品表格存在，商品行数量验证通过');
+          console.log('检测到商品表格存在，商品行数量验证通过');
       }
     });
 

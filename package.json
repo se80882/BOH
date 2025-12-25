@@ -7,7 +7,9 @@
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report",
-    "test:full": "playwright test && playwright show-report"
+    "test:full": "playwright test && playwright show-report",
+    "allure:serve": "node serve-allure.js",
+    "allure:fix": "node fix-allure-report.js"
   },
   "keywords": [
     "playwright",
